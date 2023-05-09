@@ -34,8 +34,6 @@ class TestClass {
             Pair("perguntas", listOf('a', 'b', 'c'))
         )
 
-//        println(json.jsonValues)
-//        println(json.getJsonContent())
         assertEquals(expectedJson, json.getJsonContent())
     }
 
