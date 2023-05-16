@@ -1,73 +1,70 @@
 package json.generator
 
-sealed class JsonValue {}
-data class JsonObject(val properties: Map<String, JsonValue>) : JsonValue()
-//data class JsonArray(val elements: List<JsonValue>) : JsonValue()
-data class JsonArray(val elements: List<Any?>) : JsonValue()
-data class JsonString(val value: String) : JsonValue()
-data class JsonNumber(val value: Number) : JsonValue()
-data class JsonBoolean(val value: Boolean) : JsonValue()
-data class JsonNull(val value: Nothing? = null) : JsonValue()
 
 //change to consider if no key is sent
-class Json(vararg properties: Pair<String,Any?>){
+class Json(vararg properties: Pair<String,Any?>): JsonValue() {
 
-//    private val values = mutableListOf<JsonValue>()//list that will store all the
-    val jsonValues = mutableListOf<Pair<String,JsonValue>>()//list that will store all the
+    //    private val values = mutableListOf<JsonValue>()//list that will store all the
+    val jsonValues = mutableListOf<Pair<String, JsonValue>>()//list that will store all the
 
     //loop through all the key-value pairs of Json Object
     init {
-        properties.forEach {(name, value)->
-            when(value){
+        properties.forEach { (name, value) ->
+            when (value) {
                 is Int -> this.addValue(Pair(name, JsonNumber(value)))
-                is String -> this.addValue(Pair(name,JsonString(value)))
-                is Boolean -> this.addValue(Pair(name,JsonBoolean(value)))
+                is String -> this.addValue(Pair(name, JsonString(value)))
+                is Boolean -> this.addValue(Pair(name, JsonBoolean(value)))
 //                is List<*> -> this.addValue(Pair(name,JsonArray(value as List<JsonValue>)))
-                is List<*> -> this.addValue(Pair(name,JsonArray(value as List<Any>)))
+                is List<*> -> this.addValue(Pair(name, JsonArray(value as List<Any>)))
                 is Map<*, *> -> this.addValue(Pair(name, JsonObject(value as Map<String, JsonValue>)))
 //                is Map<*, *> -> value.forEach{
 //                    this.addValue(Pair(it.key as String, it.value) as Pair<String, JsonValue>)}
-                null -> this.addValue(Pair(name,JsonNull(null)))
+                null -> this.addValue(Pair(name, JsonNull(null)))
 //                else -> TODO()
             }
         }
     }
 
-    private fun addValue(keyValuePair:  Pair<String,JsonValue>){
+    override fun accept(visitor: Visitor, key: String) {
+//        TODO()
+        visitor.visit(this)
+        jsonValues.forEach {
+            it.second.accept(visitor, it.first) //make the JsonValue
+        }
+        visitor.endVisit(this)
+    }
+
+
+    private fun addValue(keyValuePair: Pair<String, JsonValue>) {
         jsonValues.add(keyValuePair)
     }
 
 
     fun getJsonContent(): String {
 //        TODO()
-        return jsonValues.joinToString(separator = ",", prefix = "{", postfix = "\n}", transform = ::generateJsonContent)
+        return jsonValues.joinToString(
+            separator = ",",
+            prefix = "{",
+            postfix = "\n}",
+            transform = ::generateJsonContent
+        )
     }
 
-//    private fun generateJsonContent(pair: Pair<String, Any>): String {
+    //    private fun generateJsonContent(pair: Pair<String, Any>): String {
     private fun generateJsonContent(pair: Pair<String, JsonValue>): String {
         var jsonContent = "\n\t\"${pair.first}\" : "
 
-        if(pair.second is JsonString){
-            jsonContent+= "\"${(pair.second as JsonString).value}\""
-        }
-
-        else if(pair.second is JsonNumber){
-            jsonContent+= "${(pair.second as JsonNumber).value}"
-        }
-
-        else if(pair.second is JsonBoolean) {
-            jsonContent+= "${(pair.second as JsonBoolean).value}"
-        }
-
-        else if(pair.second is JsonNull) {
-            jsonContent+= "null"
-        }
-
-        else if(pair.second is JsonObject) {
+        if (pair.second is JsonString) {
+            jsonContent += "\"${(pair.second as JsonString).value}\""
+        } else if (pair.second is JsonNumber) {
+            jsonContent += "${(pair.second as JsonNumber).value}"
+        } else if (pair.second is JsonBoolean) {
+            jsonContent += "${(pair.second as JsonBoolean).value}"
+        } else if (pair.second is JsonNull) {
+            jsonContent += "null"
+        } else if (pair.second is JsonObject) {
             jsonContent += handleObject((pair.second as JsonObject).properties)
-        }
-
-        else if(pair.second is JsonArray) {
+        } else if (pair.second is JsonArray) {
 
             if (isListOfMaps(((pair.second as JsonArray).elements as List<Any>))) {
                 jsonContent += generateListOfMaps(pair.second as JsonArray)
@@ -79,32 +76,24 @@ class Json(vararg properties: Pair<String,Any?>){
 //            }
             else {
                 jsonContent += handleList((pair.second as JsonArray).elements as List<Any>)
-//                jsonContent+= (pair.second as JsonArray).elements.joinToString(separator = ",", prefix = "[", postfix = "]"){
-//                    when(it){
-//                        is String -> "\"${it}\""
-//                        is Int -> "$it"
-//                        is Boolean -> "$it"
-//                        null -> "null"
-//                        is List<Any?> -> this(it).toString()
-//                        else -> {""}
-//                    }
-//                }
-//            }
             }
         }
 
         return jsonContent
     }
 
-     fun handleList(listElements: List<Any?>):String{
-        var jsonListContent = listElements.joinToString(separator = ", ", prefix = "[", postfix = "]"){
-            when(it){
+
+    fun handleList(listElements: List<Any?>): String {
+        var jsonListContent = listElements.joinToString(separator = ", ", prefix = "[", postfix = "]") {
+            when (it) {
                 is String -> "\"${it}\""
                 is Int -> "$it"
                 is Boolean -> "$it"
                 null -> "null"
                 is List<Any?> -> handleList(it)
-                else -> {""}
+                else -> {
+                    ""
+                }
             }
         }
 
@@ -113,8 +102,9 @@ class Json(vararg properties: Pair<String,Any?>){
 
 
     private fun generateListOfMaps(jsonArray: JsonArray): String {
-        val elementsJson = jsonArray.elements.map { handleObject(it as Map<String, Any>) }.joinToString(separator = ",")
-        return "[$elementsJson]"
+        val elementsJson =
+            jsonArray.elements.map { handleObject(it as Map<String, Any>) }.joinToString(separator = ",\n")
+        return "[\n$elementsJson\n]"
     }
 
 
@@ -142,11 +132,10 @@ class Json(vararg properties: Pair<String,Any?>){
 
     //    if json array has objects, we have to handle identation
     private fun jsonArrayHasObject(jsonArray: JsonArray): Boolean {
-        jsonArray.elements.forEach{ element ->
-            if(element is JsonObject){
+        jsonArray.elements.forEach { element ->
+            if (element is JsonObject) {
                 return true
-            }
-            else if(element is JsonArray){
+            } else if (element is JsonArray) {
                 jsonArrayHasObject(element) //recursividade
             }
         }
@@ -154,66 +143,80 @@ class Json(vararg properties: Pair<String,Any?>){
 
     }
 
+    //    function to get all the values from a specific key
+    fun getValuesFromKey(keyName: String): MutableList<JsonValue> {
+        val visitor = FindValuesByKey(keyName)
+        this.accept(visitor)
+//        print(visitor.getListOfValues())
+        return visitor.getListOfValues()
+    }
+
+    fun getObjectsWithKeys(keysList: List<String>): MutableList<Any> {
+        //need to implement a first part to check if the json structure has at least one object (JsonObject or object inside JsonArray)
+        val visitor = FindObjectsWithKeys(keysList)
+        this.accept(visitor)
+        return visitor.getListOfObjects()
+    }
 }
 
-//    private fun handleList(list: List<Any>): Any? {
-//
-//    }
 
 
     fun main(){
-//    val json = Json(
-//        Pair("uc", "PA"),
-//        Pair("ects", 123),
-//        Pair("data-exame", null),
-//        Pair("importante", true),
-//        Pair("perguntas", listOf('a', 'b', 'c')),
-//        Pair("inscritos", listOf(mapOf(
-//            "numero" to 10,
-//            "nome" to "Dave",
-//            "internacional" to true),
-//            mapOf(
-//            "numero" to 12,
-//            "nome" to "Pedro",
-//            "internacional" to false)))
-//    )
 
-    val json = Json(
-        Pair("uc", "PA"),
-        Pair("ects", 123),
-        Pair("data-exame", null),
-        Pair("importante", true),
-//        Pair("perguntas", listOf("a", "b", "c")),
-//        Pair("perguntas", listOf("a", false, null, 57, "teste")),
-        Pair("perguntas", listOf("a", false, null, 57, "teste", listOf("list inside list", 98))),
-//        Pair("perguntas", listOf("a", false, 57)),
-        Pair("inscritos", mapOf(
-            "numero" to 10,
-            "nome" to "Dave",
-            "internacional" to true))
-//        Pair("inscritos", listOf(mapOf(
-//            "numero" to 10,
-//            "nome" to "Dave",
-//            "internacional" to true)))
-    )
 
-//    val o = JsonValue.JsonObject(
-//        mapOf(
-//            "uc" to JsonValue.JsonString("PA"),
-//            "inscritos" to JsonValue.JsonArray(listOf(
-//                JsonValue.JsonObject(mapOf())
-//            ))
-//        )
-//    )
+        val json = Json(
+            Pair("uc", "PA"),
+            Pair("ects", 123),
+            Pair("data-exame", null),
+            Pair("importante", true),
+            Pair("perguntas", listOf("a", "b", "c")),
+//            Pair("inscritos", listOf("um", "dois", 7)),
+            Pair("inscritos", listOf(
+                mapOf(
+                "numero" to 10,
+                "nome" to "Dave",
+                "internacional" to true),
+                mapOf(
+                "numero" to 11,
+                "nome" to "Joao",
+                "internacional" to false)))
+        )
 
-//    println(o)
+//        val json = Json(
+//            Pair("uc", "PA"),
+//            Pair("ects", 123),
+//            Pair("data-exame", null),
+//            Pair("importante", true),
+//            Pair("perguntas", listOf("a", "b", "c")),
+////            Pair("inscritos", listOf("um", "dois", 7)),
+//            Pair("inscritos",
+//                mapOf(
+//                    "numero" to 10,
+//                    "nome" to "Dave",
+//                    "internacional" to true)
+//        ))
+
+//        val json2 = Json(
+//            Pair("uc", "PA"),
+//            Pair("ects", 123))
+
+
     println(json.jsonValues)
-    println(json.getJsonContent())
-}
+//    println(json.getJsonContent())
+//    println(json2.jsonValues)
+//    println(json2.getJsonContent())
 
-//        {
-//            "uc": "PA",
-//            "ects" : 6.0,
-//            "data-exame" : null
-//            "perguntas"  : ['a', 'b', 'c']
-//        }
+//    val visitorTest = object : Visitor{}
+////    println(json.accept(visitorTest))
+//    println(json.getValuesFromKey("uc"))
+//    println(json.getValuesFromKey("numero"))
+//    println(json.getValuesFromKey("internacional"))
+//    println(json.getValuesFromKey("inscritos"))
+
+//    println(json.getObjectsWithKeys(listOf("numero", "internacional", "nom"))) //this will not work because "nom" is not an identifier
+    println(json.getObjectsWithKeys(listOf("numero", "internacional", "nome", "teste_para_falhar")))
+    println(json.getObjectsWithKeys(listOf("numero", "internacional", "nome")))
+
+
+
+    }
