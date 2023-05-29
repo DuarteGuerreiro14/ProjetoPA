@@ -32,13 +32,6 @@ class FindObjectsWithKeys(val keysList: List<String>) : Visitor{
             listOfValues.add(jsonObject)
         }
 
-//            jsonObject.properties.forEach {
-//                // possible change - change this to make it as it is for if inside visit jsonArray, so that every element is treated as JsonValue of specific type
-//                if (it.key in keysList){
-//                    println("${it.key} found inside $keysList!!!!")
-////                    listOfValues.add(it.value) //it.value is JsonValue
-//                }
-//            }
-        }
+    }
 
 }
