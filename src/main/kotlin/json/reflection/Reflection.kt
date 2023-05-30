@@ -31,6 +31,15 @@ val KClassifier?.isEnum: Boolean
     get() = this is KClass<*> && this.isSubclassOf(Enum::class)
 
 
+fun getPair(obj:Any){
+    val clazz = obj::class
+    println(clazz)
+
+    clazz.dataClassFields.forEach {
+        println("${it.name} : ${it.call(obj)} ")
+    }
+}
+
 
 
 fun main(){
@@ -53,6 +62,8 @@ fun main(){
                     "internacional" to false)),
         mapOf("nota_minima" to 10,"projeto" to true)
     )
+
+    getPair(exam)
 
 }
 
