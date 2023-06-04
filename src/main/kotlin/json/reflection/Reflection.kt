@@ -1,8 +1,10 @@
 package json.reflection
 
+import json.generator.*
 import kotlin.reflect.KClass
 import kotlin.reflect.KClassifier
 import kotlin.reflect.KProperty
+import kotlin.reflect.KType
 import kotlin.reflect.full.*
 //import kotlin.reflect.full.findAnnotations
 
@@ -35,9 +37,53 @@ fun getPair(obj:Any){
     val clazz = obj::class
     println(clazz)
 
+//    val pairs = mutableListOf<Pair<String, Any>>()
+    val pairs = mutableListOf<Pair<String, Any?>>()
+    val jsonObject = Json()
+
+    //forma de fazer como é feito na classe Json
     clazz.dataClassFields.forEach {
-        println("${it.name} : ${it.call(obj)} ")
+        println("${it.returnType}")
+
+        //if current property is not to exclude
+        if (!it.hasAnnotation<ExcludeProperty>()) {
+
+            //get the name of the identifier if it is customizable
+            val identifier = if(it.hasAnnotation<CustomizableIdentifier>()) it.findAnnotation<CustomizableIdentifier>()?.newIdentifier else it.name
+//            println(identifier)
+
+
+            if (it.returnType.toString() == "kotlin.String" || it.hasAnnotation<ForceString>()) { //or has annotation forceString - TODO
+                jsonObject.addValue(Pair(identifier!!, JsonString(it.call(obj).toString()))) //as String
+            }
+            else if (it.returnType.toString() == "kotlin.Int") {
+                jsonObject.addValue(Pair(identifier!!, JsonNumber(it.call(obj) as Int)))
+            }
+            else if (it.returnType.toString() == "kotlin.Boolean") {
+                jsonObject.addValue(Pair(identifier!!, JsonBoolean(it.call(obj) as Boolean)))
+            }
+            else if (it.returnType.toString() == "kotlin.Nothing?") {
+                jsonObject.addValue(Pair(identifier!!, JsonNull(null)))
+            }
+            else if (it.returnType.toString().contains("kotlin.collections.List")) { // AND != "kotlin.collections.Map"
+                jsonObject.addValue(Pair(identifier!!, JsonArray(it.call(obj) as List<Any?>)))
+            }
+            else if (it.returnType.toString().contains("kotlin.collections.Map")) {
+                jsonObject.addValue(Pair(identifier!!, JsonObject(it.call(obj) as Map<String, JsonValue>))) //change to ensure all elements are JsonValues
+            }
+
+//            else if(isEnum) - TODO
+//            else if(isDataClass) - TODO
+
+        }
+
+//        pairs.add(Pair(it.name, it.call(obj)) as Pair<String, Any>)
     }
+
+//    println(pairs)
+    val json = Json(*pairs.toTypedArray())
+    println(jsonObject.getJsonContent())
+//    println(json.getJsonContent())
 }
 
 
@@ -46,7 +92,7 @@ fun main(){
     val fields: List<KProperty<*>> = Exam::class.dataClassFields
     println(fields)
 
-    val exam = Exam("PA", 123,20, null, true,
+    val exam = Exam("PA", 123,20, null, true, false,
         listOf(
                 mapOf(
                     "numero" to 10,

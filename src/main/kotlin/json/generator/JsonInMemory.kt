@@ -37,7 +37,8 @@ class Json(vararg properties: Pair<String,Any?>): JsonValue() {
     }
 
 
-    private fun addValue(keyValuePair: Pair<String, JsonValue>) {
+//    private fun addValue(keyValuePair: Pair<String, JsonValue>) {
+    fun addValue(keyValuePair: Pair<String, JsonValue>) {
         jsonValues.add(keyValuePair)
     }
 
@@ -249,6 +250,7 @@ class Json(vararg properties: Pair<String,Any?>): JsonValue() {
                     "nome" to "Joao",
                     "internacional" to false)))
         )
+
 
 //        println(json.keyHasValueType("ects", JsonNumber::class))
         println(json.arrayHasDefinedStructure("inscritos"))
