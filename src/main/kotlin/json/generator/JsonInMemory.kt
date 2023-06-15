@@ -12,20 +12,48 @@ class Json(vararg properties: Pair<String,Any?>): JsonValue() {
     //loop through all the key-value pairs of Json Object
     init {
         properties.forEach { (name, value) ->
-            when (value) {
-                is Int -> this.addValue(Pair(name, JsonNumber(value)))
-                is String -> this.addValue(Pair(name, JsonString(value)))
-                is Boolean -> this.addValue(Pair(name, JsonBoolean(value)))
-//                is List<*> -> this.addValue(Pair(name,JsonArray(value as List<JsonValue>)))
-                is List<*> -> this.addValue(Pair(name, JsonArray(value as List<Any>)))
-                is Map<*, *> -> this.addValue(Pair(name, JsonObject(value as Map<String, JsonValue>)))
-//                is Map<*, *> -> value.forEach{
-//                    this.addValue(Pair(it.key as String, it.value) as Pair<String, JsonValue>)}
-                null -> this.addValue(Pair(name, JsonNull(null)))
-//                else -> TODO()
-            }
+            this.addValue(Pair(name, getJsonValue(value)))
         }
     }
+
+    //create JsonValue object after getting the data type
+    private fun getJsonValue(value: Any?): JsonValue{
+        return when (value) {
+            is Int -> JsonNumber(value)
+            is String -> JsonString(value)
+            is Boolean -> JsonBoolean(value)
+            is List<*> -> createJsonArray(value)
+            is Map<*, *> -> createJsonObject(value)
+            null -> JsonNull(null)
+            else -> JsonNull(null) //TODO
+        }
+    }
+
+     //create JsonArray object
+     fun createJsonArray(jsonElements : List<Any?>): JsonArray{
+        val elements = mutableListOf<JsonValue>()
+        jsonElements.forEach {
+    //                elements.add(it as JsonValue)
+                elements.add(getJsonValue(it))
+        }
+        return JsonArray(elements)
+    }
+
+    //create JsonObject object
+     fun createJsonObject(jsonProperties : Map<*,*>): JsonObject{
+        val properties = mutableMapOf<String, JsonValue>()
+        jsonProperties.forEach {
+            properties[it.key as String] = getJsonValue(it.value)
+        }
+        return JsonObject(properties)
+    }
+
+
+    //    private fun addValue(keyValuePair: Pair<String, JsonValue>) {
+    fun addValue(keyValuePair: Pair<String, JsonValue>) {
+        jsonValues.add(keyValuePair)
+    }
+
 
     override fun accept(visitor: Visitor, key: String) {
 //        TODO()
@@ -34,12 +62,6 @@ class Json(vararg properties: Pair<String,Any?>): JsonValue() {
             it.second.accept(visitor, it.first) //make the JsonValue
         }
         visitor.endVisit(this)
-    }
-
-
-//    private fun addValue(keyValuePair: Pair<String, JsonValue>) {
-    fun addValue(keyValuePair: Pair<String, JsonValue>) {
-        jsonValues.add(keyValuePair)
     }
 
 
@@ -73,12 +95,9 @@ class Json(vararg properties: Pair<String,Any?>): JsonValue() {
                 jsonContent += generateListOfMaps(pair.second as JsonArray)
             }
 
-//            else if(jsonArrayHasObject((pair.second as JsonArray))){ //if the array has at least one Object ({})
-//                jsonContent+= handleObject((pair.second as JsonObject).properties)
-//                jsonContent+= handleObject((pair.second as JsonObject).properties)
-//            }
             else {
                 jsonContent += handleList((pair.second as JsonArray).elements as List<Any>)
+//                jsonContent += (pair.second as JsonArray).elements.forEach(generateJsonContent())
             }
         }
 
@@ -86,14 +105,15 @@ class Json(vararg properties: Pair<String,Any?>): JsonValue() {
     }
 
 
-    fun handleList(listElements: List<Any?>): String {
+    private fun handleList(listElements: List<Any?>): String {
         var jsonListContent = listElements.joinToString(separator = ", ", prefix = "[", postfix = "]") {
             when (it) {
-                is String -> "\"${it}\""
-                is Int -> "$it"
-                is Boolean -> "$it"
-                null -> "null"
-                is List<Any?> -> handleList(it)
+                is JsonString -> "\"${it.value}\""
+                is JsonNumber -> "${it.value}"
+                is JsonBoolean -> "${it.value}"
+                is JsonNull -> "null"
+//                is List<Any?> -> handleList(it)
+                is JsonArray -> handleList(it as List<Any?>)
                 else -> {
                     ""
                 }
@@ -106,7 +126,8 @@ class Json(vararg properties: Pair<String,Any?>): JsonValue() {
 
     private fun generateListOfMaps(jsonArray: JsonArray): String {
         val elementsJson =
-            jsonArray.elements.map { handleObject(it as Map<String, Any>) }.joinToString(separator = ",\n")
+//            jsonArray.elements.map { handleObject(it as Map<String, Any>) }.joinToString(separator = ",\n")
+            jsonArray.elements.map { handleObject((it as JsonObject).properties) }.joinToString(separator = ",\n")
         return "[\n$elementsJson\n]"
     }
 
@@ -114,13 +135,23 @@ class Json(vararg properties: Pair<String,Any?>): JsonValue() {
     private fun handleObject(properties: Map<String, Any>): String {
 
         val jsonContentList = properties.entries.map { pair ->
-            when (val value = pair.value) {
-                is Int -> generateJsonContent(pair.key to JsonNumber(value))
-                is String -> generateJsonContent(pair.key to JsonString(value))
-                is Boolean -> generateJsonContent(pair.key to JsonBoolean(value))
-                is List<*> -> generateJsonContent(pair.key to JsonArray(value as List<JsonValue>))
-                is Map<*, *> -> generateJsonContent(pair.key to JsonObject(value as Map<String, JsonValue>))
-                null -> generateJsonContent(pair.key to JsonNull(null))
+            when (val type = pair.value) {
+//                is Int -> generateJsonContent(pair.key to JsonNumber(value))
+//                is String -> generateJsonContent(pair.key to JsonString(value))
+//                is Boolean -> generateJsonContent(pair.key to JsonBoolean(value))
+//                is List<*> -> generateJsonContent(pair.key to JsonArray(value as List<JsonValue>))
+//                is Map<*, *> -> generateJsonContent(pair.key to JsonObject(value as Map<String, JsonValue>))
+//                null -> generateJsonContent(pair.key to JsonNull(null))
+//                else -> TODO()
+
+
+                //isto pode ser alterado para ser feito diretamente no if
+                is JsonNumber -> generateJsonContent(pair.key to JsonNumber(type.value))
+                is JsonString -> generateJsonContent(pair.key to JsonString(type.value))
+                is JsonBoolean -> generateJsonContent(pair.key to JsonBoolean(type.value))
+                is JsonArray -> generateJsonContent(pair.key to JsonArray(type.elements))
+                is JsonObject -> generateJsonContent(pair.key to JsonObject(type.properties))
+                is JsonNull -> generateJsonContent(pair.key to JsonNull(type.value))
                 else -> TODO()
             }
         }
@@ -129,7 +160,8 @@ class Json(vararg properties: Pair<String,Any?>): JsonValue() {
     }
 
     private fun isListOfMaps(list: List<Any>): Boolean {
-        return list.all { it is Map<*, *> }
+//        return list.all { it is Map<*, *> }
+        return list.all { it is JsonObject}
     }
 
 
@@ -154,7 +186,8 @@ class Json(vararg properties: Pair<String,Any?>): JsonValue() {
         return visitor.getListOfValues()
     }
 
-    fun getObjectsWithKeys(keysList: List<String>): MutableList<Any> {
+//    fun getObjectsWithKeys(keysList: List<String>): MutableList<Any> {
+    fun getObjectsWithKeys(keysList: List<String>): MutableList<JsonValue> {
         //need to implement a first part to check if the json structure has at least one object (JsonObject or object inside JsonArray)
         val visitor = FindObjectsWithKeys(keysList)
         this.accept(visitor)
@@ -170,7 +203,8 @@ class Json(vararg properties: Pair<String,Any?>): JsonValue() {
 
     fun arrayHasDefinedStructure(keyName: String): Boolean {
         val keyValuesList = (getValuesFromKey(keyName)[0] as JsonArray)
-        val firstObject = keyValuesList.elements[0] as Map<String, Any>
+//        val firstObject = keyValuesList.elements[0] as Map<String, Any>
+        val firstObject = keyValuesList.elements[0] as JsonObject
 //        put this in a loop in case keyValuesList has more than one element
 //        println(keyValuesList)
         var previousStructure = mutableMapOf<String, String>()
@@ -178,7 +212,7 @@ class Json(vararg properties: Pair<String,Any?>): JsonValue() {
 
         //more efficient: detect for each key, if a key (or value type) is different from the current, "break" immediately with false
 
-        for ((key, value) in firstObject) {
+        for ((key, value) in firstObject.properties) {
             val valueType = value::class.simpleName ?: "Unknown"
             previousStructure[key] = valueType
         }
@@ -191,9 +225,9 @@ class Json(vararg properties: Pair<String,Any?>): JsonValue() {
             currentStructure = mutableMapOf<String, String>()
 
 
-            for ((key, value) in currentObject as Map<String, Any>) {
+            for ((key, value) in (currentObject as JsonObject).properties) {
                 val valueType = value::class.simpleName ?: "Unknown"
-                currentStructure[key] = valueType
+                currentStructure[key as String] = valueType
             }
 
             println("previous" + previousStructure)
@@ -234,7 +268,7 @@ class Json(vararg properties: Pair<String,Any?>): JsonValue() {
             Pair("ects", 123),
             Pair("data-exame", null),
             Pair("importante", true),
-            Pair("perguntas", listOf("a", "b", "c")),
+            Pair("perguntas", listOf("a", "b", "c", null)),
 //            Pair("inscritos", listOf("um", "dois", 7)),
             Pair("inscritos", listOf(
                 mapOf(
@@ -253,43 +287,27 @@ class Json(vararg properties: Pair<String,Any?>): JsonValue() {
 
 
 //        println(json.keyHasValueType("ects", JsonNumber::class))
-        println(json.arrayHasDefinedStructure("inscritos"))
+//        println(json.arrayHasDefinedStructure("inscritos"))
 
 
-//        val json = Json(
-//            Pair("uc", "PA"),
-//            Pair("ects", 123),
-//            Pair("data-exame", null),
-//            Pair("importante", true),
-//            Pair("perguntas", listOf("a", "b", "c")),
-////            Pair("inscritos", listOf("um", "dois", 7)),
-//            Pair("inscritos",
-//                mapOf(
-//                    "numero" to 10,
-//                    "nome" to "Dave",
-//                    "internacional" to true)
-//        ))
 
-//        val json2 = Json(
-//            Pair("uc", "PA"),
-//            Pair("ects", 123))
-
-
-//    println(json.jsonValues)
-//    println(json.getJsonContent())
+    println(json.jsonValues)
+    println(json.getJsonContent())
 //    println(json2.jsonValues)
 //    println(json2.getJsonContent())
 
 //    val visitorTest = object : Visitor{}
 ////    println(json.accept(visitorTest))
 //    println(json.getValuesFromKey("uc"))
-//    println(json.getValuesFromKey("numero"))
+    println(json.getValuesFromKey("numero"))
+//    println(json.getValuesFromKey("nome"))
+//    println(json.getValuesFromKey("data-exame"))
 //    println(json.getValuesFromKey("internacional"))
 //    println(json.getValuesFromKey("inscritos"))
 
-//    println(json.getObjectsWithKeys(listOf("numero", "internacional", "nom"))) //this will not work because "nom" is not an identifier
+    println(json.getObjectsWithKeys(listOf("numero", "internacional", "nome"))) //this will not work because "nom" is not an identifier
 //    println(json.getObjectsWithKeys(listOf("numero", "internacional", "nome", "teste_para_falhar")))
-//    println(json.getObjectsWithKeys(listOf("numero", "internacional", "nome")))
+//    println(json.getObjectsWithKeys(listOf("numero", "internacional")))
 
 
 

@@ -5,37 +5,15 @@ import java.awt.GridLayout
 import java.awt.event.*
 import javax.swing.*
 
-val json = Json(
-    Pair("uc", "PA"),
-    Pair("ects", 123),
-    Pair("data-exame", null),
-    Pair("importante", true),
-    Pair("perguntas", listOf("a", "b", "c")),
-//            Pair("inscritos", listOf("um", "dois", 7)),
-    Pair("inscritos", listOf(
-        mapOf(
-            "numero" to 10,
-            "nome" to "Dave",
-            "internacional" to true),
-        mapOf(
-            "numero" to 11,
-            "nome" to "Joao",
-            "internacional" to false),
-        mapOf(
-            "numero" to 11,
-            "nome" to "Joao",
-            "internacional" to false)))
-)
 
-fun main() {
-    Editor().open()
-}
 
-class Editor {
+
+
+class Editor(private val model: Json) {
     val frame = JFrame("JSON Object Editor").apply {
         defaultCloseOperation = JFrame.EXIT_ON_CLOSE
         layout = GridLayout(0, 2)
-        size = Dimension(600, 600)
+        size = Dimension(900, 600)
 
         val left = JPanel()
         left.layout = GridLayout()
@@ -52,7 +30,7 @@ class Editor {
         srcArea.tabSize = 2
 //        srcArea.text = "TODO"
 
-        srcArea.text = json.getJsonContent()
+        srcArea.text = model.getJsonContent()
         right.add(srcArea)
         add(right)
     }
@@ -70,6 +48,27 @@ class Editor {
             add(testWidget("A", "um"))
             add(testWidget("B", "dois"))
             add(testWidget("C", "tres"))
+
+//            // menu
+//            val menu = JPopupMenu("Options")
+//            val add = JMenuItem("Add")
+//            add.addActionListener {
+//                val text = JOptionPane.showInputDialog("Enter a value")
+//                if (text != null && text.isNotEmpty()) {
+//                    add(testWidget(text, "?"))
+//                    revalidate()
+//                    frame.repaint()
+//                }
+//            }
+//            menu.add(add)
+//
+//            val deleteAll = JMenuItem("Delete All")
+//            deleteAll.addActionListener {
+//                removeAll()
+//                revalidate()
+//                frame.repaint()
+//            }
+//            menu.add(deleteAll)
 
             // menu
             addMouseListener(object : MouseAdapter() {
@@ -119,8 +118,43 @@ class Editor {
         }
 }
 
+fun getInitialJson(): Json {
+
+    return Json(
+        Pair("uc", "PA"),
+        Pair("ects", 123),
+        Pair("data-exame", null),
+        Pair("importante", true),
+        Pair("perguntas", listOf("a", "b", "c")),
+//            Pair("inscritos", listOf("um", "dois", 7)),
+        Pair(
+            "inscritos", listOf(
+                mapOf<String, Any>(
+                    "numero" to 10,
+                    "nome" to "Dave",
+                    "internacional" to true
+                ),
+                mapOf<String, Any>(
+                    "numero" to 11,
+                    "nome" to "Joao",
+                    "internacional" to false
+                ),
+                mapOf<String, Any>(
+                    "numero" to 11,
+                    "nome" to "Joao",
+                    "internacional" to false
+                )
+            )
+        )
+    )
+}
 
 
+fun main() {
+
+    val json = getInitialJson()
+    Editor(json).open()
+}
 
 
 

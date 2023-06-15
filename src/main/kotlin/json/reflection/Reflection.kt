@@ -4,7 +4,6 @@ import json.generator.*
 import kotlin.reflect.KClass
 import kotlin.reflect.KClassifier
 import kotlin.reflect.KProperty
-import kotlin.reflect.KType
 import kotlin.reflect.full.*
 //import kotlin.reflect.full.findAnnotations
 
@@ -66,10 +65,11 @@ fun getPair(obj:Any){
                 jsonObject.addValue(Pair(identifier!!, JsonNull(null)))
             }
             else if (it.returnType.toString().contains("kotlin.collections.List")) { // AND != "kotlin.collections.Map"
-                jsonObject.addValue(Pair(identifier!!, JsonArray(it.call(obj) as List<Any?>)))
+//                jsonObject.addValue(Pair(identifier!!, JsonArray(it.call(obj) as List<JsonValue>)))
+                jsonObject.addValue(Pair(identifier!!, jsonObject.createJsonArray(it.call(obj) as List<Any?>)))
             }
             else if (it.returnType.toString().contains("kotlin.collections.Map")) {
-                jsonObject.addValue(Pair(identifier!!, JsonObject(it.call(obj) as Map<String, JsonValue>))) //change to ensure all elements are JsonValues
+                jsonObject.addValue(Pair(identifier!!, jsonObject.createJsonObject(it.call(obj) as Map<*, *>))) //change to ensure all elements are JsonValues
             }
 
 //            else if(isEnum) - TODO

@@ -6,13 +6,29 @@ sealed class JsonValue {
 
 data class JsonObject(val properties: Map<String, JsonValue>) : JsonValue() {
     override fun accept(visitor: Visitor, key: String) {
-        visitor.visit(this, key)
+//        visitor.visit(this, key)
+//        properties.forEach { (identifier, jsonValue) ->
+//            jsonValue.accept(visitor, identifier)
+//        }
+
+        if (visitor is FindObjectsWithKeys){
+            visitor.visit(this, key)
+        }
+        else if(visitor is FindValuesByKey){
+            //insert loop for each das properties above
+            properties.forEach { (identifier, jsonValue) ->
+                jsonValue.accept(visitor, identifier)
+            }
+        }
     }
 }
 
-data class JsonArray(val elements: List<Any?>) : JsonValue() {
+data class JsonArray(val elements: List<JsonValue>) : JsonValue() {
     override fun accept(visitor: Visitor, key: String) {
-        visitor.visit(this, key)
+//        visitor.visit(this, key)
+        elements.forEach {
+            it.accept(visitor, key)
+        }
     }
 }
 
