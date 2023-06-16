@@ -4,7 +4,13 @@ import kotlin.reflect.KClass
 
 
 //change to consider if no key is sent
-class Json(vararg properties: Pair<String,Any?>): JsonValue() {
+class Json(vararg properties: Pair<String,Any?>): JsonValue {
+
+    override var parent: JsonComplex? = null
+    override val observers: MutableList<*>
+        get() {
+            TODO()
+        }
 
     //    private val values = mutableListOf<JsonValue>()//list that will store all the
     val jsonValues = mutableListOf<Pair<String, JsonValue>>()//list that will store all the
@@ -88,15 +94,18 @@ class Json(vararg properties: Pair<String,Any?>): JsonValue() {
         } else if (pair.second is JsonNull) {
             jsonContent += "null"
         } else if (pair.second is JsonObject) {
-            jsonContent += handleObject((pair.second as JsonObject).properties)
+//            jsonContent += handleObject((pair.second as JsonObject).properties)
+            jsonContent += handleObject((pair.second as JsonObject).value)
         } else if (pair.second is JsonArray) {
 
-            if (isListOfMaps(((pair.second as JsonArray).elements as List<Any>))) {
+//            if (isListOfMaps(((pair.second as JsonArray).elements as List<Any>))) {
+            if (isListOfMaps(((pair.second as JsonArray).value as List<Any>))) {
                 jsonContent += generateListOfMaps(pair.second as JsonArray)
             }
 
             else {
-                jsonContent += handleList((pair.second as JsonArray).elements as List<Any>)
+//                jsonContent += handleList((pair.second as JsonArray).elements as List<Any>)
+                jsonContent += handleList((pair.second as JsonArray).value as List<Any>)
 //                jsonContent += (pair.second as JsonArray).elements.forEach(generateJsonContent())
             }
         }
@@ -127,7 +136,8 @@ class Json(vararg properties: Pair<String,Any?>): JsonValue() {
     private fun generateListOfMaps(jsonArray: JsonArray): String {
         val elementsJson =
 //            jsonArray.elements.map { handleObject(it as Map<String, Any>) }.joinToString(separator = ",\n")
-            jsonArray.elements.map { handleObject((it as JsonObject).properties) }.joinToString(separator = ",\n")
+//            jsonArray.elements.map { handleObject((it as JsonObject).properties) }.joinToString(separator = ",\n")
+            jsonArray.value.map { handleObject((it as JsonObject).value) }.joinToString(separator = ",\n")
         return "[\n$elementsJson\n]"
     }
 
@@ -149,8 +159,9 @@ class Json(vararg properties: Pair<String,Any?>): JsonValue() {
                 is JsonNumber -> generateJsonContent(pair.key to JsonNumber(type.value))
                 is JsonString -> generateJsonContent(pair.key to JsonString(type.value))
                 is JsonBoolean -> generateJsonContent(pair.key to JsonBoolean(type.value))
-                is JsonArray -> generateJsonContent(pair.key to JsonArray(type.elements))
-                is JsonObject -> generateJsonContent(pair.key to JsonObject(type.properties))
+//                is JsonArray -> generateJsonContent(pair.key to JsonArray(type.elements))
+                is JsonArray -> generateJsonContent(pair.key to JsonArray(type.value))
+                is JsonObject -> generateJsonContent(pair.key to JsonObject(type.value))
                 is JsonNull -> generateJsonContent(pair.key to JsonNull(type.value))
                 else -> TODO()
             }
@@ -167,7 +178,8 @@ class Json(vararg properties: Pair<String,Any?>): JsonValue() {
 
     //    if json array has objects, we have to handle identation
     private fun jsonArrayHasObject(jsonArray: JsonArray): Boolean {
-        jsonArray.elements.forEach { element ->
+//        jsonArray.elements.forEach { element ->
+        jsonArray.value.forEach { element ->
             if (element is JsonObject) {
                 return true
             } else if (element is JsonArray) {
@@ -204,7 +216,8 @@ class Json(vararg properties: Pair<String,Any?>): JsonValue() {
     fun arrayHasDefinedStructure(keyName: String): Boolean {
         val keyValuesList = (getValuesFromKey(keyName)[0] as JsonArray)
 //        val firstObject = keyValuesList.elements[0] as Map<String, Any>
-        val firstObject = keyValuesList.elements[0] as JsonObject
+//        val firstObject = keyValuesList.elements[0] as JsonObject
+        val firstObject = keyValuesList.value[0] as JsonObject
 //        put this in a loop in case keyValuesList has more than one element
 //        println(keyValuesList)
         var previousStructure = mutableMapOf<String, String>()
@@ -212,7 +225,8 @@ class Json(vararg properties: Pair<String,Any?>): JsonValue() {
 
         //more efficient: detect for each key, if a key (or value type) is different from the current, "break" immediately with false
 
-        for ((key, value) in firstObject.properties) {
+//        for ((key, value) in firstObject.properties) {
+        for ((key, value) in firstObject.value) {
             val valueType = value::class.simpleName ?: "Unknown"
             previousStructure[key] = valueType
         }
@@ -220,12 +234,14 @@ class Json(vararg properties: Pair<String,Any?>): JsonValue() {
 
         println(previousStructure)
 
-        keyValuesList.elements.forEach { currentObject ->
+//        keyValuesList.elements.forEach { currentObject ->
+        keyValuesList.value.forEach { currentObject ->
 
             currentStructure = mutableMapOf<String, String>()
 
 
-            for ((key, value) in (currentObject as JsonObject).properties) {
+//            for ((key, value) in (currentObject as JsonObject).properties) {
+            for ((key, value) in (currentObject as JsonObject).value) {
                 val valueType = value::class.simpleName ?: "Unknown"
                 currentStructure[key as String] = valueType
             }
