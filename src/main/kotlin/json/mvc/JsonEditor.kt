@@ -1,7 +1,7 @@
 package json.mvc
 
-import json.generator.JsonArray
-import json.generator.JsonObject
+import javafx.scene.Parent
+import json.generator.*
 import java.awt.Color
 import java.awt.Component
 import java.awt.GridLayout
@@ -17,21 +17,33 @@ class JsonEditor(private val model: JsonObject) : JPanel(){
     private var scrollPane : JScrollPane
     private var panel: JPanel
 
+    private val observers: MutableList<EditorObservers> = mutableListOf()
+    fun addObserver(o:EditorObservers) = observers.add(o)
     init {
-//        val left = JPanel()
+
+        model.addObserver(object : JsonValueObserver  {
+            override fun addedJsonValue(identifier: String, jsonValue: JsonValue) {
+                revalidate()
+                repaint()
+            }
+
+            override fun modifiedJsonValue(jsonValueOld: JsonValue , jsonValueNew: JsonValue) {
+                TODO(" modificar os valores do json")
+            }
+
+            override fun removedJsonValue(jsonValue: JsonValue) {
+                    }
+            })
+
         layout = GridLayout()
         border = BorderFactory.createEmptyBorder(10, 50, 0, 50)
-
-//        panel = JPanel()
         panel = getPanel()
-
 
         scrollPane = JScrollPane(panel).apply {
             horizontalScrollBarPolicy = JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS
             verticalScrollBarPolicy = JScrollPane.VERTICAL_SCROLLBAR_ALWAYS
         }
         add(scrollPane)
-//        add(left)
     }
 
     private fun getPanel(): JPanel=
@@ -75,7 +87,6 @@ class JsonEditor(private val model: JsonObject) : JPanel(){
                         outerBorder,
                         BorderFactory.createLineBorder(if (index % 2 == 0) Color.GRAY else Color.DARK_GRAY, 6)
                     )
-
                 }
 
                 else{
@@ -164,7 +175,10 @@ class JsonEditor(private val model: JsonObject) : JPanel(){
 
 
         }
+}
 
-
-
+interface EditorObservers {
+    fun addedJsonValue(parent: JsonComplex,identifier: String, jsonValue: JsonValue)
+    fun modifiedJsonValue(parent: JsonComplex, jsonValueOld: JsonValue, jsonValueNew: JsonValue)
+    fun removedJsonValue(parent: JsonComplex, jsonValue: JsonValue)
 }

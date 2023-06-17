@@ -138,8 +138,6 @@ fun getInitialJson(): JsonObject {
     json.add("cursos", jsonArray)
 
     return json
-
-
 }
 
 

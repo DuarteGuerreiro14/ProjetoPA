@@ -2,57 +2,50 @@ package json.generator
 
 import kotlin.reflect.KClass
 
-//sealed class JsonValue {
-//    abstract fun accept(visitor: Visitor, key: String = "")
-//}
-
 //interface that represents all the Json Objects
-sealed interface JsonValue{
+interface JsonValue{
     val value: Any?
         get() = null
     var parent: JsonComplex?
-    val observers: MutableList<*>
+    val observers: MutableList<JsonValueObserver>
 
     fun accept(visitor: Visitor, key: String = "")
+    fun addObserver(observer: JsonValueObserver) = observers.add(observer)
+    fun removeObserver(observer: JsonValueObserver) = observers.remove(observer)
 }
 
 //Json Complex is the class for JsonObject and JsonArray objects
 abstract class JsonComplex : JsonValue {
-//    abstract fun modify(old: JsonValue, new: JsonValue)
-    override val observers: MutableList<String> = mutableListOf()
-}
+    override val observers: MutableList<JsonValueObserver> = mutableListOf()
 
+   abstract fun modify (jsonValueOld : JsonValue, jsonValueNew : JsonValue)
+   abstract fun remove(jsonValue: JsonValue)
+}
 //Json Primitive is the class for JsonNumber, JsonString, JsonBoolean and JsonNull
 abstract class JsonPrimitive : JsonValue{
-    override val observers: MutableList<String> = mutableListOf()
+    override val observers: MutableList<JsonValueObserver> = mutableListOf()
     override var parent: JsonComplex? = null
 }
-
-//class JsonObject(val properties: Map<String, JsonValue>) : JsonComplex() {
 class JsonObject : JsonComplex() {
     override var value: MutableMap<String, JsonValue> = mutableMapOf()
-
     override var parent: JsonComplex? = null
 
     override fun toString(): String {
         return "JsonObject(value=$value)"
     }
-
-
     override fun accept(visitor: Visitor, key: String) {
-//        visitor.visit(this, key)
         //do this on the function
         if (visitor is FindObjectsWithKeys){
             this.value.forEach { (_, jsonValue) ->
             if(jsonValue is JsonComplex) {
                 if (jsonValue is JsonObject) visitor.visit(jsonValue, key)
-                if(jsonValue is JsonArray){
+                    if(jsonValue is JsonArray){
                     jsonValue.value.forEach {
                         if (it is JsonObject) visitor.visit(it, key)
                     }
                 }
 
-                }
+            }
             }
         }
         else if(visitor is FindValuesByKey){
@@ -75,6 +68,23 @@ class JsonObject : JsonComplex() {
         jsonValueToAdd.parent = this //the JsonObject is the parent of the added JsonValue
     }
 
+    override fun remove (jsonValue: JsonValue) {
+        var key = ""
+            this.value.forEach {
+                if (it.value.value == jsonValue) {
+                    key = it.key
+                }
+            }
+        this.value.remove(key)
+
+        if(this.value.isEmpty()) {
+            jsonValue.parent?.remove(this)
+        }
+    }
+
+    override fun modify(jsonValueOld: JsonValue, jsonValueNew: JsonValue) {
+        TODO("Not yet implemented")
+    }
     private fun getJsonValue(value: Any?): JsonValue{
         return when (value) {
             is Int -> JsonNumber(value)
@@ -86,7 +96,6 @@ class JsonObject : JsonComplex() {
             else -> JsonNull() //TODO
         }
     }
-
     fun getJsonContent(): String {
 //        TODO()
         return this.value.toList().joinToString(
@@ -96,7 +105,6 @@ class JsonObject : JsonComplex() {
             transform = ::generateJsonContent
         )
     }
-
     private fun generateJsonContent(pair: Pair<String, JsonValue>): String {
         var jsonContent = "\n\t\"${pair.first}\" : "
         val jsonValue = pair.second
@@ -106,10 +114,8 @@ class JsonObject : JsonComplex() {
             else if(jsonValue is JsonArray){
                 jsonContent += if (jsonValue.isListOfMaps) generateListOfMaps(jsonValue)
                 else handleList(jsonValue.value as List<Any>)
-
             }
         }
-
         else if(jsonValue is JsonPrimitive){
             if(jsonValue is JsonString){
                 jsonContent += "\"${(pair.second as JsonString).value}\""
@@ -120,20 +126,7 @@ class JsonObject : JsonComplex() {
             else{
                 jsonContent += "${jsonValue.value}"
             }
-
         }
-
-//        if (pair.second is JsonString) {
-//
-//        } else if (pair.second is JsonNumber) {
-//            jsonContent += "${(pair.second as JsonNumber).value}"
-//        } else if (pair.second is JsonBoolean) {
-//            jsonContent += "${(pair.second as JsonBoolean).value}"
-//        } else if (pair.second is JsonNull) {
-//
-//        }
-
-
         return jsonContent
     }
 
@@ -144,46 +137,28 @@ class JsonObject : JsonComplex() {
                 is JsonNumber -> "${it.value}"
                 is JsonBoolean -> "${it.value}"
                 is JsonNull -> "null"
-//                is List<Any?> -> handleList(it)
                 is JsonArray -> handleList(it as List<Any?>)
                 else -> {
                     ""
                 }
             }
         }
-
         return jsonListContent
     }
-
     private fun handleObject(value: Map<String, JsonValue>): String {
 
         val jsonContentList = value.entries.map { pair ->
-//            when (val type = pair.value) {
-//                //isto pode ser alterado para ser feito diretamente no if
-//                is JsonNumber -> generateJsonContent(pair.key to JsonNumber(type.value))
-//                is JsonString -> generateJsonContent(pair.key to JsonString(type.value))
-//                is JsonBoolean -> generateJsonContent(pair.key to JsonBoolean(type.value))
-////                is JsonArray -> generateJsonContent(pair.key to JsonArray(type.elements))
-//                is JsonArray -> generateJsonContent(pair.key to JsonArray(type.value))
-//                is JsonObject -> generateJsonContent(pair.key to JsonObject(type.value))
-//                is JsonNull -> generateJsonContent(pair.key to JsonNull())
-//                else -> TODO()
-                generateJsonContent(pair.key to pair.value)
-//            }
+            generateJsonContent(pair.key to pair.value)
         }
         return "{ ${jsonContentList.joinToString(",")} \n}"
-
     }
 
 
     private fun generateListOfMaps(jsonArray: JsonArray): String {
         val elementsJson =
-//            jsonArray.elements.map { handleObject(it as Map<String, Any>) }.joinToString(separator = ",\n")
-//            jsonArray.elements.map { handleObject((it as JsonObject).properties) }.joinToString(separator = ",\n")
             jsonArray.value.map { handleObject((it as JsonObject).value) }.joinToString(separator = ",\n")
         return "[\n$elementsJson\n]"
     }
-
 
     //create JsonArray object
     fun createJsonArray(jsonElements : List<Any?>): JsonArray{
@@ -194,13 +169,8 @@ class JsonObject : JsonComplex() {
             if (jsonValueToAdd !is JsonValue){
                 jsonValueToAdd = getJsonValue(it)
             }
-            jsonArray.add(jsonValueToAdd
-            )
+            jsonArray.add(jsonValueToAdd)
         }
-
-//        val temporaryJsonArray = JsonArray(elements)
-//        elements.forEach { it.parent = temporaryJsonArray }
-//        return JsonArray(elements)
         return jsonArray
     }
 
@@ -210,7 +180,6 @@ class JsonObject : JsonComplex() {
         jsonProperties.forEach {
             jsonObject.add(it.key as String, it.value)
         }
-//        return JsonObject(properties)
         return jsonObject
     }
 
@@ -218,23 +187,17 @@ class JsonObject : JsonComplex() {
     fun getValuesFromKey(keyName: String): MutableList<JsonValue> {
         val visitor = FindValuesByKey(keyName)
         this.accept(visitor)
-//        print(visitor.getListOfValues())
         return visitor.getListOfValues()
     }
-
     fun <T : JsonValue> keyHasValueType(keyName: String, jsonValueType : KClass<T>): Boolean {
         val keyValuesList = getValuesFromKey(keyName)
         return keyValuesList.all { jsonValueType.isInstance(it) }
     }
-
     fun arrayHasDefinedStructure(keyName: String): Boolean {
         val objectsList = (getValuesFromKey(keyName))
         println(getValuesFromKey(keyName)[0])
         val firstObject = objectsList[0]
-        val firstObject2 = (getValuesFromKey(keyName)[0])
         println(firstObject)
-//        put this in a loop in case keyValuesList has more than one element
-//        println(keyValuesList)
         var previousStructure = mutableMapOf<String, String>()
         var currentStructure = mutableMapOf<String, String>()
 
@@ -281,9 +244,6 @@ class JsonObject : JsonComplex() {
     }
 
 
-
-
-
 }
 
 class JsonArray : JsonComplex() {
@@ -291,7 +251,7 @@ class JsonArray : JsonComplex() {
 
     override val value: MutableList<JsonValue> = mutableListOf()
     override var parent: JsonComplex? = null
-    val isListOfMaps : Boolean
+    val isListOfMaps: Boolean
         get() = this.value.all { it is JsonObject }
 
     override fun toString(): String {
@@ -305,93 +265,121 @@ class JsonArray : JsonComplex() {
         }
     }
 
-    fun add(jsonValue: JsonValue){
+    fun add(jsonValue: JsonValue) {
         this.value.add(jsonValue)
         jsonValue.parent = this
     }
 
-//    fun isListOfMaps(list: List<JsonValue>): Boolean {
-//        return list.all { it is JsonObject}
-//    }
-}
+    override fun remove(jsonValue: JsonValue) {
+        this.value.remove(jsonValue)
+        observers.forEach { it.removedJsonValue(jsonValue) }
+            println(this.parent)
+        if (this.value.isEmpty()) {
 
-class JsonString(override val value: String) : JsonPrimitive() {
-    override fun accept(visitor: Visitor, key: String) {
-        visitor.visit(this, key)
+            this.parent?.remove(this)
+
+            //println(jsonValue.parent.toString() + "123")
+
+        }
+    }
+        override fun modify(jsonValueOld: JsonValue, jsonValueNew: JsonValue) {
+            TODO("Not yet implemented")
+        }
+
     }
 
-    override fun toString(): String {
-        return "JsonString(value=$value)"
-    }
-}
+    class JsonString(override val value: String) : JsonPrimitive() {
+        override fun accept(visitor: Visitor, key: String) {
+            visitor.visit(this, key)
+        }
 
-class JsonNumber(override val value: Number) : JsonPrimitive() {
-    override fun accept(visitor: Visitor, key: String) {
-        visitor.visit(this, key)
-    }
-
-    override fun toString(): String {
-        return "JsonNumber(value=$value)"
-    }
-}
-
-class JsonBoolean(override val value: Boolean) : JsonPrimitive() {
-    override fun accept(visitor: Visitor, key: String) {
-        visitor.visit(this, key)
+        override fun toString(): String {
+            return "JsonString(value=$value)"
+        }
     }
 
-    override fun toString(): String {
-        return "JsonBoolean(value=$value)"
-    }
-}
+    class JsonNumber(override val value: Number) : JsonPrimitive() {
+        override fun accept(visitor: Visitor, key: String) {
+            visitor.visit(this, key)
+        }
 
-class JsonNull : JsonPrimitive() {
-    override val value: Nothing? = null
-    override fun accept(visitor: Visitor, key: String) {
-        visitor.visit(this, key)
+        override fun toString(): String {
+            return "JsonNumber(value=$value)"
+        }
     }
 
-    override fun toString(): String {
-        return "JsonNull(value=$value)"
+    class JsonBoolean(override val value: Boolean) : JsonPrimitive() {
+        override fun accept(visitor: Visitor, key: String) {
+            visitor.visit(this, key)
+        }
+
+        override fun toString(): String {
+            return "JsonBoolean(value=$value)"
+        }
     }
-}
+
+    class JsonNull : JsonPrimitive() {
+        override val value: Nothing? = null
+        override fun accept(visitor: Visitor, key: String) {
+            visitor.visit(this, key)
+        }
+
+        override fun toString(): String {
+            return "JsonNull(value=$value)"
+        }
+    }
 //class JsonNull(override val value: Nothing? = null) : JsonPrimitive() {
 //    override fun accept(visitor: Visitor, key: String) {
 //        visitor.visit(this, key)
 //    }
 //}
 
-fun main(){
-    val json = JsonObject()
-    json.add("uc", "PA")
-    json.add("ects", 123)
-    json.add("data-exame", null)
-    json.add("inscritos", listOf(
-        mapOf(
-            "numero" to 10,
-            "nome" to "Dave",
-            "internacional" to true),
-        mapOf(
-            "numero" to 11,
-            "nome" to "Joao",
-            "internacional" to false),
-        mapOf(
-            "numero" to 11,
-            "nome" to "Andre",
-            "internacional" to false)))
+    fun main() {
+        val json = JsonObject()
+        json.add("uc", "PA")
+        json.add("ects", 123)
+        json.add("data-exame", null)
+        json.add(
+            "inscritos", listOf(
+                mapOf(
+                    "numero" to 10,
+                    "nome" to "Dave",
+                    "internacional" to true
+                ),
+                mapOf(
+                    "numero" to 11,
+                    "nome" to "Joao",
+                    "internacional" to false
+                ),
+                mapOf(
+                    "numero" to 11,
+                    "nome" to "Andre",
+                    "internacional" to false
+                )
+            )
+        )
 
-    val jsonArray = JsonArray()
-    jsonArray.add(JsonString("MEI"))
-    jsonArray.add(JsonString("METI"))
-    jsonArray.add(JsonString("MEGI"))
-    json.add("cursos", jsonArray)
+        val jsonArray = JsonArray()
+        var jValue = JsonString("MEI")
+        jsonArray.add(jValue)
+       // jsonArray.add(JsonString("METI"))
+        //jsonArray.add(JsonString("MEGI"))
+        json.add("cursos", jsonArray)
+        print(json.getJsonContent())
+        jsonArray.remove(jValue)
 
-
-    println(json.getJsonContent())
+        print("#########################################################")
+        println(json.getJsonContent())
 //    println(json.getValuesFromKey("cursos"))
 //    println(json.arrayHasDefinedStructure("inscritos"))
 ////    println(json.getValuesFromKey("numero").forEach{ println(it.value)})
 //    println(json.keyHasValueType("numero", JsonNumber::class))
-    println(json.getObjectsWithKeys(listOf("numero", "internacional", "nome")))
+       // println(json.getObjectsWithKeys(listOf("numero", "internacional", "nome")))
 //    println(json.getObjectsWithKeys(listOf("numero")))
-}
+    }
+
+    interface JsonValueObserver {
+        fun addedJsonValue(identifier: String, jsonValue: JsonValue) {}
+        fun modifiedJsonValue(jsonValueOld: JsonValue, jsonValueNew: JsonValue) {}
+        fun removedJsonValue(jsonValue: JsonValue) {}
+    }
