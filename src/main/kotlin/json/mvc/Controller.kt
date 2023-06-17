@@ -1,9 +1,6 @@
 package json.mvc
 
-import json.generator.Json
-import json.generator.JsonArray
-import json.generator.JsonObject
-import json.generator.JsonValue
+import json.generator.*
 import java.awt.Component
 import java.awt.Dimension
 import java.awt.GridLayout
@@ -15,7 +12,7 @@ import javax.swing.*
 //    json.mvc.Editor().open()
 //}
 
-class Editor(private val model: Json) {
+class Editor(private val model: JsonObject) {
     val frame = JFrame("JSON Object Editor").apply {
         defaultCloseOperation = JFrame.EXIT_ON_CLOSE
         layout = GridLayout(0, 2)
@@ -114,62 +111,35 @@ class Editor(private val model: Json) {
 }
 
 
-fun getInitialJson(): Json {
+fun getInitialJson(): JsonObject {
 
-    return Json(
-        Pair("uc", "PA"),
-        Pair("ects", 123),
-        Pair("data-exame", null),
-        Pair("importante", true),
-        Pair(
-            "inscritos", listOf(
-                mapOf<String, Any>(
-                    "numero" to 10,
-                    "nome" to "Dave",
-                    "internacional" to true
-                ),
-                mapOf<String, Any>(
-                    "numero" to 11,
-                    "nome" to "Joao",
-                    "internacional" to false
-                ),
-                mapOf<String, Any>(
-                    "numero" to 11,
-                    "nome" to "Joao",
-                    "internacional" to false
-                )
-            )
-        ),
-        Pair("perguntas", listOf("MEI", "MIG", "METI"))
-    )
+    val json = JsonObject()
+    json.add("uc", "PA")
+    json.add("ects", 123)
+    json.add("data-exame", null)
+    json.add("inscritos", listOf(
+        mapOf(
+            "numero" to 10,
+            "nome" to "Dave",
+            "internacional" to true),
+        mapOf(
+            "numero" to 11,
+            "nome" to "Joao",
+            "internacional" to false),
+        mapOf(
+            "numero" to 11,
+            "nome" to "Andre",
+            "internacional" to false)))
 
-//    return Json(
-//        Pair("uc", "PA"),
-//        Pair("ects", 123),
-//        Pair("data-exame", null),
-//        Pair("importante", true),
-//        Pair("perguntas", listOf("a", "b", "c")),
-////            Pair("inscritos", listOf("um", "dois", 7)),
-//        Pair(
-//            "inscritos", listOf(
-//                mapOf<String, Any>(
-//                    "numero" to 10,
-//                    "nome" to "Dave",
-//                    "internacional" to true
-//                ),
-//                mapOf<String, Any>(
-//                    "numero" to 11,
-//                    "nome" to "Joao",
-//                    "internacional" to false
-//                ),
-//                mapOf<String, Any>(
-//                    "numero" to 11,
-//                    "nome" to "Joao",
-//                    "internacional" to false
-//                )
-//            )
-//        )
-//    )
+    val jsonArray = JsonArray()
+    jsonArray.add(JsonString("MEI"))
+    jsonArray.add(JsonString("METI"))
+    jsonArray.add(JsonString("MEGI"))
+    json.add("cursos", jsonArray)
+
+    return json
+
+
 }
 
 

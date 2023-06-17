@@ -2,8 +2,9 @@ package json.generator
 
 interface Visitor{
     fun visit(jsonElement: JsonValue,  key: String){ } //Boolean = true
-    fun visit(jsonStructure: Json){ } //Boolean = true
-    fun endVisit(jsonStructure: Json){ } //Boolean = true
+//    fun visit(jsonStructure: Json){ } //Boolean = true
+//    fun endVisit(jsonStructure: Json){ } //Boolean = true
+    fun endVisit(jsonObject: JsonObject){ } //Boolean = true
     //    visit will be equal for all primitive types(?)
     fun visit(jsonNumber: JsonNumber, key: String){ } //Boolean = true
     fun visit(jsonString: JsonString, key: String){ } //Boolean = true

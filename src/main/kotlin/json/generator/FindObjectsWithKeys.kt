@@ -23,6 +23,8 @@ class FindObjectsWithKeys(private val keysList: List<String>) : Visitor{
 
 
     override fun visit(jsonObject: JsonObject, key: String) {
+//        println("visiting FindObjectsWithKeys")
+//        println(jsonObject)
 
 //        val allKeysPresent = keysList.all { jsonObject.properties.containsKey(it) }
         val allKeysPresent = keysList.all { jsonObject.value.containsKey(it) }

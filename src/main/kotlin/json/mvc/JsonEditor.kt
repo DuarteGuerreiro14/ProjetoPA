@@ -1,6 +1,5 @@
 package json.mvc
 
-import json.generator.Json
 import json.generator.JsonArray
 import json.generator.JsonObject
 import java.awt.Color
@@ -13,7 +12,7 @@ import java.awt.event.MouseEvent
 import javax.swing.*
 import javax.swing.border.Border
 
-class JsonEditor(private val model: Json) : JPanel(){
+class JsonEditor(private val model: JsonObject) : JPanel(){
 
     private var scrollPane : JScrollPane
     private var panel: JPanel
@@ -39,7 +38,7 @@ class JsonEditor(private val model: Json) : JPanel(){
         JPanel().apply {
             layout = BoxLayout(this, BoxLayout.Y_AXIS)
 
-            model.jsonValues.forEach { (identifier, jsonValue) ->
+            model.value.forEach { (identifier, jsonValue) ->
                 if(jsonValue !is JsonArray){
 //                    TODO()
 //                    add(testWidget2(identifier, jsonValue.value.toString()))
@@ -165,8 +164,6 @@ class JsonEditor(private val model: Json) : JPanel(){
 
 
         }
-
-
 
 
 

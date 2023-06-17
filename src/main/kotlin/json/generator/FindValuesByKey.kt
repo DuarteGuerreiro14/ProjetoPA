@@ -55,7 +55,7 @@ class FindValuesByKey(private val keyName: String) : Visitor{
 
     override fun visit(jsonObject: JsonObject, key: String) {
         if (key == keyName) {
-            println("found list for key $keyName!!!!")
+            println("found object for key $keyName!!!!")
             listOfValues.add(jsonObject)
         }
 //        else {

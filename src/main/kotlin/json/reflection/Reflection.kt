@@ -38,7 +38,7 @@ fun getPair(obj:Any){
 
 //    val pairs = mutableListOf<Pair<String, Any>>()
     val pairs = mutableListOf<Pair<String, Any?>>()
-    val jsonObject = Json()
+    val jsonObject = JsonObject()
 
     //forma de fazer como é feito na classe Json
     clazz.dataClassFields.forEach {
@@ -53,23 +53,23 @@ fun getPair(obj:Any){
 
 
             if (it.returnType.toString() == "kotlin.String" || it.hasAnnotation<ForceString>()) { //or has annotation forceString - TODO
-                jsonObject.addValue(Pair(identifier!!, JsonString(it.call(obj).toString()))) //as String
+                jsonObject.add(identifier!!, JsonString(it.call(obj).toString())) //as String
             }
             else if (it.returnType.toString() == "kotlin.Int") {
-                jsonObject.addValue(Pair(identifier!!, JsonNumber(it.call(obj) as Int)))
+                jsonObject.add(identifier!!, JsonNumber(it.call(obj) as Int))
             }
             else if (it.returnType.toString() == "kotlin.Boolean") {
-                jsonObject.addValue(Pair(identifier!!, JsonBoolean(it.call(obj) as Boolean)))
+                jsonObject.add(identifier!!, JsonBoolean(it.call(obj) as Boolean))
             }
             else if (it.returnType.toString() == "kotlin.Nothing?") {
-                jsonObject.addValue(Pair(identifier!!, JsonNull(null)))
+                jsonObject.add(identifier!!, JsonNull())
             }
             else if (it.returnType.toString().contains("kotlin.collections.List")) { // AND != "kotlin.collections.Map"
 //                jsonObject.addValue(Pair(identifier!!, JsonArray(it.call(obj) as List<JsonValue>)))
-                jsonObject.addValue(Pair(identifier!!, jsonObject.createJsonArray(it.call(obj) as List<Any?>)))
+                jsonObject.add(identifier!!, jsonObject.createJsonArray(it.call(obj) as List<Any?>))
             }
             else if (it.returnType.toString().contains("kotlin.collections.Map")) {
-                jsonObject.addValue(Pair(identifier!!, jsonObject.createJsonObject(it.call(obj) as Map<*, *>))) //change to ensure all elements are JsonValues
+                jsonObject.add(identifier!!, jsonObject.createJsonObject(it.call(obj) as Map<*, *>)) //change to ensure all elements are JsonValues
             }
 
 //            else if(isEnum) - TODO
@@ -81,7 +81,7 @@ fun getPair(obj:Any){
     }
 
 //    println(pairs)
-    val json = Json(*pairs.toTypedArray())
+//    val json = Json(*pairs.toTypedArray())
     println(jsonObject.getJsonContent())
 //    println(json.getJsonContent())
 }

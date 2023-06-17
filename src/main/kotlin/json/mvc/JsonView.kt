@@ -1,11 +1,14 @@
 package json.mvc
 
-import json.generator.Json
+//import json.generator.Json
+import json.generator.JsonObject
 import java.awt.GridLayout
 import javax.swing.JPanel
 import javax.swing.JTextArea
 
-class JsonView(private val model: Json) : JPanel() {
+class JsonView(private val model: JsonObject) : JPanel() {
+
+//    private val observers = mutableListOf<JsonViewObserver>()
 
     private val jsonTextArea = JTextArea()
 
@@ -20,3 +23,7 @@ class JsonView(private val model: Json) : JPanel() {
     }
 
 }
+
+//interface JsonViewObserver{
+//
+//}
