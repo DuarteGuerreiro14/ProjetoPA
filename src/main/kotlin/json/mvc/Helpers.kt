@@ -1,4 +1,5 @@
-//import json.generator.Json
+////import json.generator.Json
+//import json.generator.JsonObject
 //import java.awt.Component
 //import java.awt.Dimension
 //import java.awt.GridLayout
@@ -9,7 +10,7 @@
 //
 //
 //
-//class json.mvc.Editor(private val model: Json) {
+//class json.mvc.Editor(private val model: JsonObject) {
 //    val frame = JFrame("JSON Object json.mvc.Editor").apply {
 //        defaultCloseOperation = JFrame.EXIT_ON_CLOSE
 //        layout = GridLayout(0, 2)

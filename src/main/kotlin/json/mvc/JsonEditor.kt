@@ -1,6 +1,6 @@
 package json.mvc
 
-import javafx.scene.Parent
+//import javafx.scene.Parent
 import json.generator.*
 import java.awt.Color
 import java.awt.Component
@@ -12,7 +12,7 @@ import java.awt.event.MouseEvent
 import javax.swing.*
 import javax.swing.border.Border
 
-class JsonEditor(private val model: JsonObject) : JPanel(){
+class JsonEditor(private val model: JsonObject, val controller: Controller) : JPanel(){
 
     private var scrollPane : JScrollPane
     private var panel: JPanel
@@ -28,12 +28,12 @@ class JsonEditor(private val model: JsonObject) : JPanel(){
             }
 
             override fun modifiedJsonValue(jsonValueOld: JsonValue , jsonValueNew: JsonValue) {
-                TODO(" modificar os valores do json")
+//                TODO(" modificar os valores do json")
             }
 
             override fun removedJsonValue(jsonValue: JsonValue) {
-                    }
-            })
+            }
+        })
 
         layout = GridLayout()
         border = BorderFactory.createEmptyBorder(10, 50, 0, 50)
@@ -54,7 +54,8 @@ class JsonEditor(private val model: JsonObject) : JPanel(){
                 if(jsonValue !is JsonArray){
 //                    TODO()
 //                    add(testWidget2(identifier, jsonValue.value.toString()))
-                    add(testWidget2(identifier, jsonValue.value.toString()))
+//                    add(testWidget(identifier, jsonValue.value.toString()))
+                    add(testWidget(identifier, jsonValue))
                 }
                 else{
 //                    add(testWidget2(identifier, jsonValue.value.toString()))
@@ -90,7 +91,8 @@ class JsonEditor(private val model: JsonObject) : JPanel(){
                 }
 
                 else{
-                    elementPanel = testWidget2(value = jsonValue.value.toString())
+//                    elementPanel = testWidget2(value = jsonValue.value.toString())
+                    elementPanel = testWidget(value = jsonValue)
                     elementPanel.border = BorderFactory.createCompoundBorder(
                         outerBorder,
                         BorderFactory.createLineBorder(if (index % 2 == 0) Color.GRAY else Color.DARK_GRAY, 4)
@@ -105,7 +107,7 @@ class JsonEditor(private val model: JsonObject) : JPanel(){
             JPanel().apply {
                 layout = BoxLayout(this, BoxLayout.X_AXIS)
                 border = BorderFactory.createEmptyBorder(0, 0, 0, 0)
-                add(testWidget2(key = identifier))
+                add(testWidget(identifier = identifier))
                 add(objectsPanel)
                 panel.add(this)
             }
@@ -117,7 +119,66 @@ class JsonEditor(private val model: JsonObject) : JPanel(){
 //        TODO()
         JPanel().apply {
             layout = BoxLayout(this, BoxLayout.Y_AXIS)
-            jsonObject.value.forEach { add(testWidget2(it.key, it.value.value.toString())) }
+//            jsonObject.value.forEach { add(testWidget(it.key, it.value.value.toString())) }
+            jsonObject.value.forEach { add(testWidget(it.key, it.value)) }
+        }
+
+
+//    private fun testWidget(identifier: String? = null, value: String? = null): JPanel =
+    private fun testWidget(identifier: String? = null, value: JsonValue? = null): JPanel =
+        JPanel().apply {
+            layout = BoxLayout(this, BoxLayout.X_AXIS)
+            alignmentX = Component.LEFT_ALIGNMENT
+            alignmentY = Component.TOP_ALIGNMENT
+
+            val identifierLabel: JLabel
+            val text: JTextField
+
+            if (identifier != null) {
+                identifierLabel = JLabel(identifier)
+                add(identifierLabel)
+            } //identifier
+                            //jsonValue
+
+            if (value != null) {
+//                text = JTextField(value)
+                text = JTextField(value.value.toString())
+
+                text.addActionListener {
+
+                }
+
+                text.addFocusListener(object : FocusAdapter() {
+                    override fun focusLost(e: FocusEvent) {
+                        println("perdeu foco: ${text.text},  " + value)
+
+//                        println(text.text + value.value.toString())
+                        if(text.text != value.value.toString()) {
+
+                            //initialize oldJsonValue
+//                            var oldJsonValue: JsonValue = JsonNull()
+                            var oldJsonValue: JsonValue = value
+                            //adicionar verificação de parent
+//                            if (value.parent == model) {
+//                                oldJsonValue = model.value[identifier.toString()]!! //change
+//                            }
+//                            else if( value.parent is JsonArray){
+//
+//                            }
+
+
+                            val newJsonValue = model.getJsonValue(text.text)
+//                            model.value[identifier.toString()] = newJsonValue
+//                            println(model.getJsonContent())
+//                            controller.updateModel(model)
+                            observers.forEach { it.modifiedJsonValue(oldJsonValue.parent!!,oldJsonValue, newJsonValue) }
+//                            testWidget(identifier, newJsonValue)
+                        }
+
+                    }
+                })
+                add(text)
+            }
         }
 
 

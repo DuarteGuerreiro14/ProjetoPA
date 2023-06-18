@@ -71,7 +71,7 @@ class JsonObject : JsonComplex() {
     override fun remove (jsonValue: JsonValue) {
         var key = ""
             this.value.forEach {
-                if (it.value.value == jsonValue) {
+                if (it.value == jsonValue) {
                     key = it.key
                 }
             }
@@ -83,9 +83,14 @@ class JsonObject : JsonComplex() {
     }
 
     override fun modify(jsonValueOld: JsonValue, jsonValueNew: JsonValue) {
-        TODO("Not yet implemented")
+        var key = this.value.entries.find { it.value == jsonValueOld }?.key
+        this.value.put(key!!, jsonValueNew)
+        jsonValueNew.parent = this
+        observers.forEach { it.modifiedJsonValue(jsonValueOld, jsonValueNew) }
     }
-    private fun getJsonValue(value: Any?): JsonValue{
+
+
+     fun getJsonValue(value: Any?): JsonValue{
         return when (value) {
             is Int -> JsonNumber(value)
             is String -> JsonString(value)
@@ -271,20 +276,39 @@ class JsonArray : JsonComplex() {
     }
 
     override fun remove(jsonValue: JsonValue) {
+
+        var parentKeyToRemove = ""
+        (parent as JsonObject).value.forEach { (identifier, currentJsonValue) ->
+            if(currentJsonValue is JsonArray){
+                (currentJsonValue as JsonArray).value.forEach {
+                    if(it == jsonValue) parentKeyToRemove = identifier
+                }
+            }
+        }
+
         this.value.remove(jsonValue)
+
         observers.forEach { it.removedJsonValue(jsonValue) }
-            println(this.parent)
+//            println(parent)
         if (this.value.isEmpty()) {
-
-            this.parent?.remove(this)
-
-            //println(jsonValue.parent.toString() + "123")
-
+            (parent as JsonObject).value.remove(parentKeyToRemove)
         }
     }
-        override fun modify(jsonValueOld: JsonValue, jsonValueNew: JsonValue) {
-            TODO("Not yet implemented")
+
+
+    override fun modify(jsonValueOld: JsonValue, jsonValueNew: JsonValue) {
+        var listAux = mutableListOf<JsonValue>()
+        listAux.addAll(this.value)
+        listAux.forEachIndexed { index, jsonValue ->
+            if(jsonValue == jsonValueOld) {
+                this.value[index] = jsonValueNew
+                jsonValueNew.parent = this
+                observers.forEach { it.modifiedJsonValue(jsonValueOld,jsonValueNew) }
+            }
         }
+
+    }
+
 
     }
 
@@ -336,39 +360,91 @@ class JsonArray : JsonComplex() {
 
     fun main() {
         val json = JsonObject()
-        json.add("uc", "PA")
+
+        val jsonPA = JsonString("PA")
+
+        json.add("uc", jsonPA)
         json.add("ects", 123)
         json.add("data-exame", null)
-        json.add(
-            "inscritos", listOf(
-                mapOf(
-                    "numero" to 10,
-                    "nome" to "Dave",
-                    "internacional" to true
-                ),
-                mapOf(
-                    "numero" to 11,
-                    "nome" to "Joao",
-                    "internacional" to false
-                ),
-                mapOf(
-                    "numero" to 11,
-                    "nome" to "Andre",
-                    "internacional" to false
-                )
-            )
-        )
 
-        val jsonArray = JsonArray()
+        val inscritosArray = JsonArray()
+
+        val inscrito1 = JsonObject()
+        val inscrito1nome = JsonString("Dave")
+        val inscrito1numero = JsonNumber(10)
+        val inscrito1int = JsonBoolean(true)
+        inscrito1.add("nome", inscrito1nome)
+        inscrito1.add("numero", inscrito1numero)
+        inscrito1.add("internacional", inscrito1int)
+
+        val inscrito2 = JsonObject()
+        val inscrito2nome = JsonString("Joao")
+        val inscrito2numero = JsonNumber(11)
+        val inscrito2int = JsonBoolean(false)
+        inscrito2.add("nome", inscrito2nome)
+        inscrito2.add("numero", inscrito2numero)
+        inscrito2.add("internacional", inscrito2int)
+
+        val inscrito3 = JsonObject()
+        val inscrito3nome = JsonString("Andre")
+        val inscrito3numero = JsonNumber(12)
+        val inscrito3int = JsonBoolean(false)
+        inscrito3.add("nome", inscrito3nome)
+        inscrito3.add("numero", inscrito3numero)
+        inscrito3.add("internacional", inscrito3int)
+
+        inscritosArray.add(inscrito1)
+        inscritosArray.add(inscrito2)
+        inscritosArray.add(inscrito3)
+
+        json.add("inscritos",inscritosArray)
+//
+//        json.add(
+//            "inscritos", listOf(
+//                mapOf(
+//                    "numero" to 10,
+//                    "nome" to "Dave",
+//                    "internacional" to true
+//                ),
+//                mapOf(
+//                    "numero" to 11,
+//                    "nome" to "Joao",
+//                    "internacional" to false
+//                ),
+//                mapOf(
+//                    "numero" to 11,
+//                    "nome" to "Andre",
+//                    "internacional" to false
+//                )
+//            )
+//        )
+
+        val jsonArrayCursos = JsonArray()
         var jValue = JsonString("MEI")
-        jsonArray.add(jValue)
+        var jValue2 = JsonString("MEGI")
+        jsonArrayCursos.add(jValue)
+        jsonArrayCursos.add(jValue2)
        // jsonArray.add(JsonString("METI"))
         //jsonArray.add(JsonString("MEGI"))
-        json.add("cursos", jsonArray)
+        json.add("cursos", jsonArrayCursos)
         print(json.getJsonContent())
-        jsonArray.remove(jValue)
+//        jsonArray.remove(jValue)
 
-        print("#########################################################")
+//        json.remove(jsonArrayCursos)
+//        inscritosArray.remove(inscrito1)
+//        inscritosArray.remove(inscrito2)
+//        inscritosArray.remove(inscrito3)
+
+        inscrito1.remove(inscrito1nome)
+        inscrito1.remove(inscrito1int)
+        inscrito1.remove(inscrito1numero)
+
+//        println(json.arrayHasDefinedStructure("inscritos"))
+
+//        inscritosArray.remove(inscrito2)
+//        inscritosArray.remove(inscrito3)
+
+        print("\n\n#########################################################\n\n")
         println(json.getJsonContent())
 //    println(json.getValuesFromKey("cursos"))
 //    println(json.arrayHasDefinedStructure("inscritos"))

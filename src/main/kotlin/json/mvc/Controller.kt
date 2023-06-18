@@ -12,44 +12,66 @@ import javax.swing.*
 //    json.mvc.Editor().open()
 //}
 
-class Editor(private val model: JsonObject) {
+class Controller(private var model: JsonObject) {
+    val instance = this
+
     val frame = JFrame("JSON Object Editor").apply {
         defaultCloseOperation = JFrame.EXIT_ON_CLOSE
         layout = GridLayout(0, 2)
         size = Dimension(900, 600)
 
-        val editor = JsonEditor(model)
+        var editor = JsonEditor(model, instance)
+        editor.addObserver(object : EditorObservers{
+            override fun modifiedJsonValue(parent: JsonComplex, jsonValueOld: JsonValue, jsonValueNew: JsonValue) {
+                println("inside modified")
+                println(model.getJsonContent())
+                println("\n______________________\n")
 
+                if((jsonValueOld.parent == model)) {
+                    model.modify(jsonValueOld, jsonValueNew)
+                }
+
+                else{
+                    print("hereeeeeeee")
+                    if(jsonValueOld.parent is JsonArray){
+
+                        (jsonValueOld.parent as JsonArray).modify(jsonValueOld, jsonValueNew)
+                    }
+                }
+
+                println(model.getJsonContent())
+
+            }
+
+            override fun addedJsonValue(parent: JsonComplex, identifier: String, jsonValue: JsonValue) {
+//                TODO("Not yet implemented")
+            }
+
+            override fun removedJsonValue(parent: JsonComplex, jsonValue: JsonValue) {
+//                TODO("Not yet implemented")
+            }
+        })
+
+//        editor = JsonEditor(model, instance)
         // Adding views to the frame - Json editor and viewer
         val editorPanel: JPanel = JPanel().apply {
 //            add(undoBtn)
             add(editor)
         }
+
+
         val view = JsonView(model)
 
         add(editorPanel)
         add(view)
+    }
 
-
-
-//        val left = JPanel()
-//        left.layout = GridLayout()
-//        val scrollPane = JScrollPane(testPanel()).apply {
-//            horizontalScrollBarPolicy = JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS
-//            verticalScrollBarPolicy = JScrollPane.VERTICAL_SCROLLBAR_ALWAYS
-//        }
-//        left.add(scrollPane)
-//        add(left)
-
-
-
-//        val right = JPanel()
-//        right.layout = GridLayout()
-//        val srcArea = JTextArea()
-//        srcArea.tabSize = 2
-//        srcArea.text = model.getJsonContent()
-//        right.add(srcArea)
-//        add(right)
+    fun updateModel(model: JsonObject){
+        this.model = model
+//        frame.revalidate()
+//        frame.repaint()
+//        val view = JsonView(this.model)
+        Controller(this.model).open()
     }
 
     fun open() {
@@ -144,7 +166,7 @@ fun getInitialJson(): JsonObject {
 fun main() {
 
     val json = getInitialJson()
-    Editor(json).open()
+    Controller(json).open()
 }
 
 
