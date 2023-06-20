@@ -21,11 +21,14 @@ abstract class JsonComplex : JsonValue {
    abstract fun modify (jsonValueOld : JsonValue, jsonValueNew : JsonValue)
    abstract fun remove(jsonValue: JsonValue)
 }
+
 //Json Primitive is the class for JsonNumber, JsonString, JsonBoolean and JsonNull
 abstract class JsonPrimitive : JsonValue{
     override val observers: MutableList<JsonValueObserver> = mutableListOf()
     override var parent: JsonComplex? = null
 }
+
+
 class JsonObject : JsonComplex() {
     override var value: MutableMap<String, JsonValue> = mutableMapOf()
     override var parent: JsonComplex? = null
@@ -34,7 +37,6 @@ class JsonObject : JsonComplex() {
         return "JsonObject(value=$value)"
     }
     override fun accept(visitor: Visitor, key: String) {
-        //do this on the function
         if (visitor is FindObjectsWithKeys){
             this.value.forEach { (_, jsonValue) ->
             if(jsonValue is JsonComplex) {
@@ -50,7 +52,6 @@ class JsonObject : JsonComplex() {
         }
         else if(visitor is FindValuesByKey){
             visitor.visit(this, key)
-            //insert loop for each das properties above
             value.forEach { (identifier, jsonValue) ->
                 jsonValue.accept(visitor, identifier)
             }
@@ -84,7 +85,9 @@ class JsonObject : JsonComplex() {
 
     override fun modify(jsonValueOld: JsonValue, jsonValueNew: JsonValue) {
         var key = this.value.entries.find { it.value == jsonValueOld }?.key
-        this.value.put(key!!, jsonValueNew)
+        if(key != null) {
+            this.value.put(key, jsonValueNew)
+        }
         jsonValueNew.parent = this
         observers.forEach { it.modifiedJsonValue(jsonValueOld, jsonValueNew) }
     }
@@ -194,31 +197,28 @@ class JsonObject : JsonComplex() {
         this.accept(visitor)
         return visitor.getListOfValues()
     }
+
+    //function to check if a key is composed of JsonValue objects of an exclusive type
     fun <T : JsonValue> keyHasValueType(keyName: String, jsonValueType : KClass<T>): Boolean {
         val keyValuesList = getValuesFromKey(keyName)
         return keyValuesList.all { jsonValueType.isInstance(it) }
     }
+
+    //function to verify if an array has a defined structure (ex: all the JsonObjects inside a list have the same properties)
     fun arrayHasDefinedStructure(keyName: String): Boolean {
         val objectsList = (getValuesFromKey(keyName))
-        println(getValuesFromKey(keyName)[0])
         val firstObject = objectsList[0]
-        println(firstObject)
+
         var previousStructure = mutableMapOf<String, String>()
         var currentStructure = mutableMapOf<String, String>()
 
-        //more efficient: detect for each key, if a key (or value type) is different from the current, "break" immediately with false
 
-//        for ((key, value) in firstObject.properties) {
         for ((key, value) in (firstObject as JsonObject).value) {
             val valueType = value::class.simpleName ?: "Unknown"
             previousStructure[key] = valueType
         }
 
-
-        println(previousStructure)
-
         objectsList.forEach { currentObject ->
-
             currentStructure = mutableMapOf<String, String>()
 
             for ((key, value) in (currentObject as JsonObject).value) {
@@ -226,22 +226,18 @@ class JsonObject : JsonComplex() {
                 currentStructure[key as String] = valueType
             }
 
-            println("previous" + previousStructure)
-            println("current" + currentStructure + "\n")
-
             if(previousStructure != currentStructure)
                 return false
-
             previousStructure = currentStructure
-//            currentStructure = mutableMapOf<String, String>()
 
         }
+
         return true
 
     }
 
     fun getObjectsWithKeys(keysList: List<String>): MutableList<JsonValue> {
-        //need to implement a first part to check if the json structure has at least one object (JsonObject or object inside JsonArray)
+
         val visitor = FindObjectsWithKeys(keysList)
         this.accept(visitor)
 
@@ -252,7 +248,6 @@ class JsonObject : JsonComplex() {
 }
 
 class JsonArray : JsonComplex() {
-// class JsonArray : JsonComplex() {
 
     override val value: MutableList<JsonValue> = mutableListOf()
     override var parent: JsonComplex? = null
@@ -264,7 +259,6 @@ class JsonArray : JsonComplex() {
     }
 
     override fun accept(visitor: Visitor, key: String) {
-//        visitor.visit(this, key)
         value.forEach {
             it.accept(visitor, key)
         }
@@ -285,11 +279,9 @@ class JsonArray : JsonComplex() {
                 }
             }
         }
-
         this.value.remove(jsonValue)
 
         observers.forEach { it.removedJsonValue(jsonValue) }
-//            println(parent)
         if (this.value.isEmpty()) {
             (parent as JsonObject).value.remove(parentKeyToRemove)
         }
@@ -352,45 +344,46 @@ class JsonArray : JsonComplex() {
             return "JsonNull(value=$value)"
         }
     }
-//class JsonNull(override val value: Nothing? = null) : JsonPrimitive() {
-//    override fun accept(visitor: Visitor, key: String) {
-//        visitor.visit(this, key)
-//    }
-//}
+
 
     fun main() {
+
         val json = JsonObject()
 
         val jsonPA = JsonString("PA")
 
         json.add("uc", jsonPA)
-        json.add("ects", 123)
+        json.add("ects", 6)
         json.add("data-exame", null)
+
 
         val inscritosArray = JsonArray()
 
         val inscrito1 = JsonObject()
-        val inscrito1nome = JsonString("Dave")
-        val inscrito1numero = JsonNumber(10)
+        val inscrito1nome = JsonString("Dave Farley")
+        val inscrito1numero = JsonNumber(101101)
         val inscrito1int = JsonBoolean(true)
-        inscrito1.add("nome", inscrito1nome)
+
         inscrito1.add("numero", inscrito1numero)
+        inscrito1.add("nome", inscrito1nome)
         inscrito1.add("internacional", inscrito1int)
 
         val inscrito2 = JsonObject()
-        val inscrito2nome = JsonString("Joao")
-        val inscrito2numero = JsonNumber(11)
-        val inscrito2int = JsonBoolean(false)
-        inscrito2.add("nome", inscrito2nome)
+        val inscrito2nome = JsonString("Martin Fowler")
+        val inscrito2numero = JsonNumber(101102)
+        val inscrito2int = JsonBoolean(true)
+
         inscrito2.add("numero", inscrito2numero)
+        inscrito2.add("nome", inscrito2nome)
         inscrito2.add("internacional", inscrito2int)
 
         val inscrito3 = JsonObject()
-        val inscrito3nome = JsonString("Andre")
-        val inscrito3numero = JsonNumber(12)
+        val inscrito3nome = JsonString("André Santos")
+        val inscrito3numero = JsonNumber(26503)
         val inscrito3int = JsonBoolean(false)
-        inscrito3.add("nome", inscrito3nome)
+
         inscrito3.add("numero", inscrito3numero)
+        inscrito3.add("nome", inscrito3nome)
         inscrito3.add("internacional", inscrito3int)
 
         inscritosArray.add(inscrito1)
@@ -398,60 +391,8 @@ class JsonArray : JsonComplex() {
         inscritosArray.add(inscrito3)
 
         json.add("inscritos",inscritosArray)
-//
-//        json.add(
-//            "inscritos", listOf(
-//                mapOf(
-//                    "numero" to 10,
-//                    "nome" to "Dave",
-//                    "internacional" to true
-//                ),
-//                mapOf(
-//                    "numero" to 11,
-//                    "nome" to "Joao",
-//                    "internacional" to false
-//                ),
-//                mapOf(
-//                    "numero" to 11,
-//                    "nome" to "Andre",
-//                    "internacional" to false
-//                )
-//            )
-//        )
-
-        val jsonArrayCursos = JsonArray()
-        var jValue = JsonString("MEI")
-        var jValue2 = JsonString("MEGI")
-        jsonArrayCursos.add(jValue)
-        jsonArrayCursos.add(jValue2)
-       // jsonArray.add(JsonString("METI"))
-        //jsonArray.add(JsonString("MEGI"))
-        json.add("cursos", jsonArrayCursos)
-        print(json.getJsonContent())
-//        jsonArray.remove(jValue)
-
-//        json.remove(jsonArrayCursos)
-//        inscritosArray.remove(inscrito1)
-//        inscritosArray.remove(inscrito2)
-//        inscritosArray.remove(inscrito3)
-
-        inscrito1.remove(inscrito1nome)
-        inscrito1.remove(inscrito1int)
-        inscrito1.remove(inscrito1numero)
-
-//        println(json.arrayHasDefinedStructure("inscritos"))
-
-//        inscritosArray.remove(inscrito2)
-//        inscritosArray.remove(inscrito3)
-
-        print("\n\n#########################################################\n\n")
         println(json.getJsonContent())
-//    println(json.getValuesFromKey("cursos"))
-//    println(json.arrayHasDefinedStructure("inscritos"))
-////    println(json.getValuesFromKey("numero").forEach{ println(it.value)})
-//    println(json.keyHasValueType("numero", JsonNumber::class))
-       // println(json.getObjectsWithKeys(listOf("numero", "internacional", "nome")))
-//    println(json.getObjectsWithKeys(listOf("numero")))
+
     }
 
     interface JsonValueObserver {

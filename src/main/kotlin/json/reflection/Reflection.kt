@@ -18,7 +18,7 @@ annotation class CustomizableIdentifier(val newIdentifier: String)
 annotation class ForceString
 
 
-// obtem lista de atributos pela ordem do construtor primario
+//obtains list of attributes ordered as in the main constructor
 val KClass<*>.dataClassFields: List<KProperty<*>>
     get() {
         require(isData) { "instance must be data class" }
@@ -27,33 +27,25 @@ val KClass<*>.dataClassFields: List<KProperty<*>>
         }
     }
 
-// saber se um KClassifier é um enumerado
 val KClassifier?.isEnum: Boolean
     get() = this is KClass<*> && this.isSubclassOf(Enum::class)
 
 
-fun getPair(obj:Any){
-    val clazz = obj::class
-    println(clazz)
+fun createJson(obj:Any): JsonObject {
 
-//    val pairs = mutableListOf<Pair<String, Any>>()
-    val pairs = mutableListOf<Pair<String, Any?>>()
+    val clazz = obj::class
     val jsonObject = JsonObject()
 
-    //forma de fazer como é feito na classe Json
     clazz.dataClassFields.forEach {
-        println("${it.returnType}")
 
         //if current property is not to exclude
         if (!it.hasAnnotation<ExcludeProperty>()) {
 
             //get the name of the identifier if it is customizable
             val identifier = if(it.hasAnnotation<CustomizableIdentifier>()) it.findAnnotation<CustomizableIdentifier>()?.newIdentifier else it.name
-//            println(identifier)
 
-
-            if (it.returnType.toString() == "kotlin.String" || it.hasAnnotation<ForceString>()) { //or has annotation forceString - TODO
-                jsonObject.add(identifier!!, JsonString(it.call(obj).toString())) //as String
+            if (it.returnType.toString() == "kotlin.String" || it.hasAnnotation<ForceString>()) { //or has annotation forceString
+                jsonObject.add(identifier!!, JsonString(it.call(obj).toString()))
             }
             else if (it.returnType.toString() == "kotlin.Int") {
                 jsonObject.add(identifier!!, JsonNumber(it.call(obj) as Int))
@@ -64,26 +56,18 @@ fun getPair(obj:Any){
             else if (it.returnType.toString() == "kotlin.Nothing?") {
                 jsonObject.add(identifier!!, JsonNull())
             }
-            else if (it.returnType.toString().contains("kotlin.collections.List")) { // AND != "kotlin.collections.Map"
-//                jsonObject.addValue(Pair(identifier!!, JsonArray(it.call(obj) as List<JsonValue>)))
+            else if (it.returnType.toString().contains("kotlin.collections.List")) {
                 jsonObject.add(identifier!!, jsonObject.createJsonArray(it.call(obj) as List<Any?>))
             }
             else if (it.returnType.toString().contains("kotlin.collections.Map")) {
-                jsonObject.add(identifier!!, jsonObject.createJsonObject(it.call(obj) as Map<*, *>)) //change to ensure all elements are JsonValues
+                jsonObject.add(identifier!!, jsonObject.createJsonObject(it.call(obj) as Map<*, *>))
             }
 
-//            else if(isEnum) - TODO
-//            else if(isDataClass) - TODO
-
         }
-
-//        pairs.add(Pair(it.name, it.call(obj)) as Pair<String, Any>)
     }
 
-//    println(pairs)
-//    val json = Json(*pairs.toTypedArray())
-    println(jsonObject.getJsonContent())
-//    println(json.getJsonContent())
+    return jsonObject
+
 }
 
 
@@ -109,7 +93,8 @@ fun main(){
         mapOf("nota_minima" to 10,"projeto" to true)
     )
 
-    getPair(exam)
+    val json = createJson(exam)
+    println(json.getJsonContent())
 
 }
 
